@@ -2,20 +2,31 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
        xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
     http://www.springframework.org/schema/beans/spring-beans.xsd
     http://www.springframework.org/schema/context
-    http://www.springframework.org/schema/context/spring-context.xsd">
+    http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/util
+    http://www.springframework.org/schema/util/spring-util.xsd"
+    default-autowire="byName">
+
+    <bean id="wall"
+        class="ru.specialist.material.Wood"
+        scope="prototype"
+        primary="true"/>
 
     <bean id="brickBean"
         class="ru.specialist.material.Brick"
-        scope="prototype">
+        scope="prototype"
+        autowire-candidate="false">
     </bean>
 
     <bean id="logsBean"
         class="ru.specialist.material.Wood"
-        scope="prototype">
+        scope="prototype"
+        autowire-candidate="false">
     </bean>
 
     <bean id="windowBean"
@@ -31,15 +42,20 @@
         scope="prototype">
     </bean>
 
+    <bean id="keySelector"
+        class="ru.specialist.key_selector.KeySelector">
+    </bean>
+
     <bean id="houseBean"
         class="ru.specialist.house.House"
-        p:height="2">
+        p:height="2"
+        autowire="byType">
         <constructor-arg ref="windowBean"/>
+        <property name="wall" ref="brickBean"/>
         <!--
         <constructor-arg value="3"/>
         <property name="height" value="2"/>
         -->
-        <property name="wall" ref="brickBean"/>
         <!--
         <property name="wall">
             <bean class="ru.specialist.material.Brick"/>
@@ -53,10 +69,18 @@
             </list>
             -->
             <map>
-                <entry key="A" value-ref="outDoor"/>
-                <entry key="B" value-ref="innerDoor"/>
+                <entry key="#{keySelector.getKey(outDoor)?.toUpperCase()}" value-ref="outDoor"/>
+                <entry key="#{keySelector.getKey(innerDoor)?.toUpperCase()}" value-ref="innerDoor"/>
+                <entry key="#{systemEnvironment['JAVA_HOME']}" value-ref="innerDoor"/>
+                <!--
+                <entry key="#{systemProperties['application.name']}" value-ref="innerDoor"/>
+                -->
             </map>
         </property>
+    </bean>
+
+    <bean id="houseBean2"
+        class="ru.specialist.house.House" parent="houseBean">
     </bean>
 
     <bean id="mainWindowBean"
@@ -65,5 +89,47 @@
         init-method="openConnection"
         destroy-method="closeConnection">
     </bean>
+
+    <util:list id="cities">
+        <bean class="ru.specialist.city.City"
+            p:name="Chicago" p:state="IL" p:population="2853114"/>
+        <bean class="ru.specialist.city.City"
+              p:name="Atlanta" p:state="GA" p:population="537958"/>
+        <bean class="ru.specialist.city.City"
+              p:name="Dallas" p:state="TX" p:population="1279910"/>
+        <bean class="ru.specialist.city.City"
+              p:name="Houston" p:state="TX" p:population="2242193"/>
+        <bean class="ru.specialist.city.City"
+              p:name="Odessa" p:state="TX" p:population="90943"/>
+        <bean class="ru.specialist.city.City"
+              p:name="El Paso" p:state="TX" p:population="613190"/>
+    </util:list>
+
+    <!--
+    <property name="cityNames" value="#{cities.?[population gt 100000].![name+', '+state]}"/>
+    -->
+
+    <!-- Сделаем коллекцию из названий городов
+    <property name="cityNames" value="#{cities.![name + ', ' + state]}"/>
+    -->
+
+    <!-- Хотим чтобы в опред. кол. попали города с населением > 100 000
+    <property name="bigCities" value="#{cities.?[population gt 100000]}"/>
+    -->
+
+    <!-- ^ - первое значение последовательности
+    <property name="firstBigCity" value="#{cities.^[population gt 100000]}"/>
+         $ - последнее значение последовательности
+    <property name="lastBigCity" value="#{cities.$[population gt 100000]}"/>
+    -->
+
+    <!-- Они внутри bean
+    <property name="chosenCity" value="#{cities[T(java.lang.Math).random()*cities.size()]}"/>
+    <property name="chosenCity" value="#{cities['Dallas']}"/>
+    -->
+
+    <!--
+    <util:properties id="jdbcSettings" location="classpath:jdbc.properties"/>
+    -->
 
 </beans>
